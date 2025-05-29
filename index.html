@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App para Aprender Inglés</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-lg */
+            padding: 1.5rem; /* p-6 */
+            margin-bottom: 1rem; /* mb-4 */
+            transition: all 0.3s ease-in-out;
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+        }
+        .input-field {
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            width: 100%;
+            margin-bottom: 0.75rem; /* mb-3 */
+        }
+        .btn {
+            border-radius: 0.5rem; /* rounded-lg */
+            padding: 0.75rem 1.5rem; /* py-3 px-6 */
+            font-weight: 600; /* font-semibold */
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* bg-blue-600 */
+        }
+        .btn-secondary {
+            background-color: #6b7280; /* bg-gray-500 */
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* bg-gray-600 */
+        }
+        .btn-danger {
+            background-color: #ef4444; /* bg-red-500 */
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626; /* bg-red-600 */
+        }
+        .translation {
+            display: none;
+            margin-top: 0.5rem; /* mt-2 */
+            color: #4b5563; /* text-gray-600 */
+            font-style: italic;
+        }
+        .practice-area .card .translation {
+            display: block; /* Always show in practice area once revealed */
+        }
+        .hidden-translation {
+            background-color: #e5e7eb; /* bg-gray-200 */
+            color: #e5e7eb; /* text-gray-200 */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        .hidden-translation.revealed {
+            background-color: transparent;
+            color: #4b5563; /* text-gray-600 */
+        }
+        #message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #10b981; /* bg-green-500 */
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #message-box.error {
+            background-color: #ef4444; /* bg-red-500 */
+        }
+        #loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            z-index: 1001;
+            display: none; /* Hidden by default */
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3b82f6; /* blue-500 */
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="loading-indicator">
+        <div class="spinner"></div>
+        <p class="mt-2 text-gray-700">Cargando...</p>
+    </div>
+
+    <div id="message-box"></div>
+
+    <div class="container mx-auto max-w-3xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">App para Aprender Inglés</h1>
+            <p class="text-gray-600 mt-2">Añade palabras y frases en inglés para practicar y memorizar.</p>
+            <p class="text-sm text-gray-500 mt-1">ID de Usuario: <span id="userIdDisplay"></span></p>
+        </header>
+
+        <section id="add-section" class="mb-8 card">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Añadir Nuevo Elemento</h2>
+            <div>
+                <label for="englishText" class="block text-sm font-medium text-gray-700 mb-1">Inglés:</label>
+                <input type="text" id="englishText" class="input-field" placeholder="Ej: Hello World">
+            </div>
+            <div>
+                <label for="spanishText" class="block text-sm font-medium text-gray-700 mb-1">Español:</label>
+                <input type="text" id="spanishText" class="input-field" placeholder="Ej: Hola Mundo">
+            </div>
+            <button id="addButton" class="btn btn-primary w-full">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline-block mr-2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Añadir
+            </button>
+        </section>
+
+        <section id="vocabulary-list-section" class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-700">Mi Vocabulario (<span id="vocabCount">0</span>)</h2>
+                <button id="togglePracticeMode" class="btn btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline-block mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Modo Práctica
+                </button>
+            </div>
+            <div id="vocabularyList" class="space-y-3">
+                <p class="text-gray-500 text-center py-4">Aún no has añadido ninguna palabra o frase. ¡Empieza ahora!</p>
+            </div>
+        </section>
+
+        <section id="practice-area" class="hidden">
+             <h2 class="text-2xl font-semibold text-gray-700 mb-4">Modo Práctica</h2>
+            <div id="practiceCardContainer" class="card">
+                <p class="text-gray-500 text-center py-4">No hay elementos para practicar o has terminado.</p>
+            </div>
+            <div class="mt-6 flex justify-center space-x-4">
+                <button id="prevPracticeCard" class="btn btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline-block mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                    Anterior
+                </button>
+                <button id="nextPracticeCard" class="btn btn-primary">
+                    Siguiente
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline-block ml-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                </button>
+            </div>
+        </section>
+
+    </div>
+
+    <script type="module">
+        // Importaciones de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, query, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuración de Firebase (usando variables globales si están disponibles)
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "YOUR_API_KEY", // Reemplazar si no se usa __firebase_config
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-english-learner-app';
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        // setLogLevel('debug'); // Descomentar para logs detallados de Firestore
+
+        // Elementos del DOM
+        const englishTextEl = document.getElementById('englishText');
+        const spanishTextEl = document.getElementById('spanishText');
+        const addButton = document.getElementById('addButton');
+        const vocabularyListEl = document.getElementById('vocabularyList');
+        const vocabCountEl = document.getElementById('vocabCount');
+        const userIdDisplayEl = document.getElementById('userIdDisplay');
+        const togglePracticeModeBtn = document.getElementById('togglePracticeMode');
+        const practiceAreaEl = document.getElementById('practice-area');
+        const vocabularyListSectionEl = document.getElementById('vocabulary-list-section');
+        const practiceCardContainerEl = document.getElementById('practiceCardContainer');
+        const nextPracticeCardBtn = document.getElementById('nextPracticeCard');
+        const prevPracticeCardBtn = document.getElementById('prevPracticeCard');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const messageBox = document.getElementById('message-box');
+
+        let userId = null;
+        let vocabulary = [];
+        let currentPracticeIndex = 0;
+        let isPracticeMode = false;
+        let unsubscribeVocabulary = null; // Para la función de cancelación de onSnapshot
+
+        // --- Autenticación ---
+        async function setupAuth() {
+            loadingIndicator.style.display = 'flex';
+            try {
+                await setPersistence(auth, browserLocalPersistence); // Persistir sesión
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    console.log("Autenticado con token personalizado.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Autenticado anónimamente.");
+                }
+            } catch (error) {
+                console.error("Error de autenticación: ", error);
+                showMessage(`Error de autenticación: ${error.message}`, true);
+                userId = `error-no-auth-${crypto.randomUUID()}`;
+                userIdDisplayEl.textContent = userId;
+                loadVocabulary(); // Intentar cargar incluso sin auth completo, puede fallar si las reglas son estrictas
+            } finally {
+                 // El listener onAuthStateChanged se encargará de ocultar el loading
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            loadingIndicator.style.display = 'flex'; // Mostrar al cambiar estado
+            if (user) {
+                userId = user.uid;
+                userIdDisplayEl.textContent = userId;
+                console.log("Usuario autenticado:", userId);
+                loadVocabulary(); // Cargar vocabulario una vez que el usuario está autenticado
+            } else {
+                userId = `anon-${crypto.randomUUID()}`; // Fallback si no hay usuario
+                userIdDisplayEl.textContent = "No autenticado (ID local)";
+                console.log("Usuario no autenticado. Usando ID local:", userId);
+                // Considerar si se debe limpiar el vocabulario o intentar cargar datos locales no sincronizados
+                vocabulary = []; // Limpiar si no hay usuario, para evitar mezclar datos
+                renderVocabulary();
+                loadingIndicator.style.display = 'none';
+            }
+        });
+        
+        // --- Funciones de UI y Mensajes ---
+        function showMessage(message, isError = false) {
+            messageBox.textContent = message;
+            messageBox.className = isError ? 'error' : '';
+            messageBox.style.display = 'block';
+            messageBox.style.opacity = '1';
+            setTimeout(() => {
+                messageBox.style.opacity = '0';
+                setTimeout(() => messageBox.style.display = 'none', 500);
+            }, 3000);
+        }
+
+        // --- Lógica de la Aplicación ---
+        async function addVocabularyItem() {
+            const english = englishTextEl.value.trim();
+            const spanish = spanishTextEl.value.trim();
+
+            if (!english || !spanish) {
+                showMessage("Por favor, completa ambos campos.", true);
+                return;
+            }
+            if (!userId || userId.startsWith('error-no-auth-')) {
+                showMessage("Error: No se pudo autenticar al usuario. No se puede guardar.", true);
+                console.error("Intento de añadir sin userId válido.");
+                return;
+            }
+
+            loadingIndicator.style.display = 'flex';
+            const newItem = {
+                englishText: english,
+                spanishText: spanish,
+                createdAt: serverTimestamp() // Usar serverTimestamp para la hora del servidor
+            };
+
+            try {
+                const collectionPath = `artifacts/${appId}/users/${userId}/vocabulary`;
+                await addDoc(collection(db, collectionPath), newItem);
+                showMessage("Elemento añadido correctamente.");
+                englishTextEl.value = '';
+                spanishTextEl.value = '';
+            } catch (error) {
+                console.error("Error añadiendo elemento a Firestore: ", error);
+                showMessage(`Error al añadir: ${error.message}`, true);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        function loadVocabulary() {
+            if (!userId || userId.startsWith('error-no-auth-')) {
+                console.warn("No hay userId válido, no se puede cargar vocabulario de Firestore.");
+                loadingIndicator.style.display = 'none';
+                renderVocabulary(); // Renderiza lista vacía o local si existiera
+                return;
+            }
+            loadingIndicator.style.display = 'flex';
+
+            const collectionPath = `artifacts/${appId}/users/${userId}/vocabulary`;
+            const q = query(collection(db, collectionPath)); // No orderBy por ahora para evitar errores de índice
+
+            if (unsubscribeVocabulary) {
+                unsubscribeVocabulary(); // Cancelar la suscripción anterior si existe
+            }
+
+            unsubscribeVocabulary = onSnapshot(q, (querySnapshot) => {
+                vocabulary = [];
+                querySnapshot.forEach((doc) => {
+                    vocabulary.push({ id: doc.id, ...doc.data() });
+                });
+                // Ordenar en el cliente después de recibir los datos
+                vocabulary.sort((a, b) => {
+                    if (a.createdAt && b.createdAt) {
+                        return a.createdAt.seconds - b.createdAt.seconds;
+                    }
+                    return 0; // O alguna lógica de ordenamiento por defecto si no hay timestamp
+                });
+                renderVocabulary();
+                if (isPracticeMode) {
+                    renderPracticeCard(); // Actualizar la tarjeta de práctica si está activa
+                }
+                loadingIndicator.style.display = 'none';
+            }, (error) => {
+                console.error("Error cargando vocabulario de Firestore: ", error);
+                showMessage(`Error al cargar vocabulario: ${error.message}`, true);
+                loadingIndicator.style.display = 'none';
+                // Si hay un error (ej. permisos), mostrar lista vacía.
+                vocabulary = [];
+                renderVocabulary();
+            });
+        }
+
+        function renderVocabulary() {
+            vocabularyListEl.innerHTML = ''; // Limpiar lista actual
+            vocabCountEl.textContent = vocabulary.length;
+
+            if (vocabulary.length === 0) {
+                vocabularyListEl.innerHTML = '<p class="text-gray-500 text-center py-4">Aún no has añadido ninguna palabra o frase. ¡Empieza ahora!</p>';
+                if (isPracticeMode) renderPracticeCard(); // Actualizar vista de práctica
+                return;
+            }
+
+            vocabulary.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card flex justify-between items-start';
+                card.innerHTML = `
+                    <div>
+                        <p class="text-lg font-semibold text-gray-800">${item.englishText}</p>
+                        <p class="translation">${item.spanishText}</p>
+                        <button class="text-sm text-blue-500 hover:underline mt-2 reveal-translation-btn">Mostrar/Ocultar Traducción</button>
+                    </div>
+                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12.56 0c.342.052.682.107 1.022.166m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                    </button>
+                `;
+                vocabularyListEl.appendChild(card);
+
+                card.querySelector('.reveal-translation-btn').addEventListener('click', (e) => {
+                    const translationP = e.target.closest('div').querySelector('.translation');
+                    translationP.style.display = translationP.style.display === 'none' ? 'block' : 'none';
+                });
+
+                card.querySelector('.delete-btn').addEventListener('click', () => deleteItem(item.id));
+            });
+        }
+
+        async function deleteItem(itemId) {
+            if (!userId || userId.startsWith('error-no-auth-')) {
+                showMessage("Error: No se pudo autenticar al usuario. No se puede eliminar.", true);
+                return;
+            }
+            // Custom confirmation dialog
+            const confirmDelete = await showCustomConfirm("¿Estás seguro de que quieres eliminar este elemento?");
+            if (!confirmDelete) return;
+            
+            loadingIndicator.style.display = 'flex';
+            try {
+                const docPath = `artifacts/${appId}/users/${userId}/vocabulary/${itemId}`;
+                await deleteDoc(doc(db, docPath));
+                showMessage("Elemento eliminado correctamente.");
+                // No es necesario llamar a loadVocabulary() aquí, onSnapshot lo hará automáticamente.
+            } catch (error) {
+                console.error("Error eliminando elemento de Firestore: ", error);
+                showMessage(`Error al eliminar: ${error.message}`, true);
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+        
+        function showCustomConfirm(message) {
+            return new Promise((resolve) => {
+                const existingModal = document.getElementById('customConfirmModal');
+                if (existingModal) existingModal.remove();
+
+                const modalHtml = `
+                    <div id="customConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex justify-center items-center z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm mx-auto">
+                            <p class="text-lg text-gray-800 mb-4">${message}</p>
+                            <div class="flex justify-end space-x-3">
+                                <button id="confirmCancelBtn" class="btn btn-secondary">Cancelar</button>
+                                <button id="confirmOkBtn" class="btn btn-danger">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+                document.getElementById('confirmOkBtn').onclick = () => {
+                    document.getElementById('customConfirmModal').remove();
+                    resolve(true);
+                };
+                document.getElementById('confirmCancelBtn').onclick = () => {
+                    document.getElementById('customConfirmModal').remove();
+                    resolve(false);
+                };
+            });
+        }
+
+
+        // --- Lógica del Modo Práctica ---
+        function togglePracticeMode() {
+            isPracticeMode = !isPracticeMode;
+            if (isPracticeMode) {
+                togglePracticeModeBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline-block mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                    Ver Lista
+                `;
+                togglePracticeModeBtn.classList.remove('btn-secondary');
+                togglePracticeModeBtn.classList.add('btn-primary');
+                vocabularyListSectionEl.classList.add('hidden');
+                practiceAreaEl.classList.remove('hidden');
+                currentPracticeIndex = 0; // Reiniciar al entrar en modo práctica
+                renderPracticeCard();
+            } else {
+                togglePracticeModeBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline-block mr-2">
+                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Modo Práctica
+                `;
+                togglePracticeModeBtn.classList.remove('btn-primary');
+                togglePracticeModeBtn.classList.add('btn-secondary');
+                vocabularyListSectionEl.classList.remove('hidden');
+                practiceAreaEl.classList.add('hidden');
+            }
+        }
+
+        function renderPracticeCard() {
+            if (!isPracticeMode || vocabulary.length === 0) {
+                practiceCardContainerEl.innerHTML = '<p class="text-gray-500 text-center py-4">No hay elementos para practicar. Añade algunos primero.</p>';
+                prevPracticeCardBtn.disabled = true;
+                nextPracticeCardBtn.disabled = true;
+                return;
+            }
+
+            // Asegurarse que el índice está dentro de los límites
+            if (currentPracticeIndex < 0) currentPracticeIndex = vocabulary.length - 1;
+            if (currentPracticeIndex >= vocabulary.length) currentPracticeIndex = 0;
+            
+            const item = vocabulary[currentPracticeIndex];
+            practiceCardContainerEl.innerHTML = `
+                <p class="text-2xl font-bold text-gray-800 mb-3 text-center">${item.englishText}</p>
+                <div class="text-center mb-4">
+                    <span class="hidden-translation p-2 rounded" id="practiceSpanishText" data-translation="${item.spanishText}">Haz clic para revelar</span>
+                </div>
+                <button id="revealPracticeTranslation" class="btn btn-primary w-full">Revelar Traducción</button>
+            `;
+
+            const practiceSpanishTextEl = document.getElementById('practiceSpanishText');
+            const revealPracticeTranslationBtn = document.getElementById('revealPracticeTranslation');
+
+            practiceSpanishTextEl.addEventListener('click', revealTranslation);
+            revealPracticeTranslationBtn.addEventListener('click', revealTranslation);
+            
+            function revealTranslation() {
+                practiceSpanishTextEl.textContent = practiceSpanishTextEl.dataset.translation;
+                practiceSpanishTextEl.classList.add('revealed');
+                revealPracticeTranslationBtn.style.display = 'none'; // Ocultar botón después de revelar
+            }
+
+            prevPracticeCardBtn.disabled = vocabulary.length <= 1;
+            nextPracticeCardBtn.disabled = vocabulary.length <= 1;
+        }
+
+        function showNextPracticeCard() {
+            if (vocabulary.length > 0) {
+                currentPracticeIndex = (currentPracticeIndex + 1) % vocabulary.length;
+                renderPracticeCard();
+            }
+        }
+
+        function showPrevPracticeCard() {
+            if (vocabulary.length > 0) {
+                currentPracticeIndex = (currentPracticeIndex - 1 + vocabulary.length) % vocabulary.length;
+                renderPracticeCard();
+            }
+        }
+        
+        // --- Event Listeners ---
+        addButton.addEventListener('click', addVocabularyItem);
+        togglePracticeModeBtn.addEventListener('click', togglePracticeMode);
+        nextPracticeCardBtn.addEventListener('click', showNextPracticeCard);
+        prevPracticeCardBtn.addEventListener('click', showPrevPracticeCard);
+
+        // Cargar datos iniciales
+        setupAuth(); // Iniciar proceso de autenticación y carga de datos
+
+    </script>
+</body>
+</html>
